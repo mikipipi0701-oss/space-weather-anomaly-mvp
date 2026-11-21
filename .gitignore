@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Pytest & coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated runtime outputs (CSV / JSON / Markdown reports)
+synced_anomaly_timeseries.csv
+event_baseline_summaries.json
+event_comparison_report.md
+event_technical_briefs.md
+
+# Editor / OS clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
