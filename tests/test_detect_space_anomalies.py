@@ -48,8 +48,6 @@ class TestComputeRecoveryMinutes:
         base_val = 400.0
         base_scale = 10.0  # tolerance = 0.75 * 10.0 = 7.5
 
-        # +1m: in-band (402), +2m: in-band (404) -> only 2 consecutive, then +3m: out-of-band (420)
-        # +4m, +5m, +6m: 3 consecutive in-band -> recovery starts at +4m (240s = 4.0 min)
         post_df = pd.DataFrame(
             {
                 "timestamp": [
@@ -77,7 +75,9 @@ class TestComputeRecoveryMinutes:
 
     def test_returns_none_when_post_slice_empty_or_streak_not_met(self) -> None:
         event_end = pd.Timestamp("2026-11-21T12:00:00Z")
-        empty_post = pd.DataFrame({"timestamp": pd.Series([], dtype="datetime64[ns, UTC]"), "bt": []})
+        empty_post = pd.DataFrame(
+            {"timestamp": pd.Series([], dtype="datetime64[ns, UTC]"), "bt": []}
+        )
 
         assert (
             _compute_recovery_minutes(
@@ -117,17 +117,17 @@ class TestComputeRecoveryMinutes:
 
 class TestBuildEventBaselineSummaries:
     def test_pre_baseline_tail_cutoff_and_event_consolidation(self) -> None:
-        # 1-minute cadence across 2026-11-21
-        timestamps = pd.date_range("2026-11-21T09:00:00Z", periods=30, freq="1min")
-        metric_a = [10.0] * 30
-        metric_b = [5.0] * 30
-        synced_event = [False] * 30
-        hit_a = [False] * 30
-        hit_b = [False] * 30
-        max_z = [0.5] * 30
+        n_rows = 60
+        timestamps = pd.date_range("2026-11-21T09:00:00Z", periods=n_rows, freq="1min")
+        metric_a = [10.0] * n_rows
+        metric_b = [5.0] * n_rows
+        synced_event = [False] * n_rows
+        hit_a = [False] * n_rows
+        hit_b = [False] * n_rows
+        max_z = [0.5] * n_rows
 
         # Pre-baseline window before Event #1 (indices 0..9): metric_a = 10.0, metric_b = 5.0
-        # Event #1 (indices 10..11): within gap_tolerance (20min), consolidated into 1 event
+        # Event #1 (indices 10..11): 09:10Z ~ 09:11Z
         for idx in (10, 11):
             metric_a[idx] = 30.0
             metric_b[idx] = 15.0
@@ -136,13 +136,14 @@ class TestBuildEventBaselineSummaries:
             hit_b[idx] = True
             max_z[idx] = 6.5
 
-        # Event #2 at tail (index 29): no post samples -> post_samples_count == 0
-        metric_a[29] = 22.0
-        metric_b[29] = 11.0
-        synced_event[29] = True
-        hit_a[29] = True
-        hit_b[29] = True
-        max_z[29] = 3.5
+        # Event #2 at tail (index 59 -> 09:59Z, 48 min after 09:11Z > 20min gap_tolerance)
+        tail_idx = n_rows - 1
+        metric_a[tail_idx] = 22.0
+        metric_b[tail_idx] = 11.0
+        synced_event[tail_idx] = True
+        hit_a[tail_idx] = True
+        hit_b[tail_idx] = True
+        max_z[tail_idx] = 3.5
 
         df = pd.DataFrame(
             {
